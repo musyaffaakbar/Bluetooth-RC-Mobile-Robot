@@ -1,125 +1,183 @@
+// RC BLUETOOTH RC MBUH REVISI PIO AKEH POKOK E 
+// by Musyaffaab 
+// Elektronika dan Instrumentasi 2022
+
 #include "BluetoothSerial.h"
 #include <Arduino.h>
-BluetoothSerial serialBT;
-char BT;
-int Speed = 100;
-//driver kanan
-int R1PWM = 19;
-int R2PWM = 21;
-//driver kiri
-int L1PWM = 23;
-int L2PWM = 22;
 
-#define rmf 0
-#define rmb 1
-#define lmf 2
-#define lmb 3
+BluetoothSerial serialBT;
+
+// Bluetooth signal stored in this variable
+char btSignal;
+
+// Initial Speed of the Bot
+int Speed = 100;
+
+/* FOR RIGHT MOTOR (Driver 1) */
+int RPWM1 = 18; // RPWM for Motor 1
+int LPWM1 = 27; // LPWM for Motor 1
+int REN1 = 19;  // R_EN for Motor 1
+int LEN1 = 23;  // L_EN for Motor 1
+
+/* FOR LEFT MOTOR (Driver 2) */
+int RPWM2 = 32; // RPWM for Motor 2
+int LPWM2 = 33; // LPWM for Motor 2
+int REN2 = 26;  // R_EN for Motor 2
+int LEN2 = 4;   // L_EN for Motor 2
+
+// Declare channel for PWM Output
+#define R1 0
+#define R2 1
+#define L1 2
+#define L2 3
 
 void setup() {
   Serial.begin(115200);
-  serialBT.begin("MUSYAFFAAB_RC");  //nama bluetooth espnya
-  pinMode(R1PWM, OUTPUT);
-  pinMode(R2PWM, OUTPUT);
-  pinMode(L1PWM, OUTPUT);
-  pinMode(L2PWM, OUTPUT);
-  // Setup channel utk PWM
-  ledcSetup(rmf, 5000, 8); 
-  ledcAttachPin(R1PWM, rmf);
-  ledcSetup(rmb, 5000, 8);  
-  ledcAttachPin(R2PWM, rmb);
-  ledcSetup(lmf, 5000, 8);  
-  ledcAttachPin(L1PWM, lmf);
-  ledcSetup(lmb, 5000, 8);
-  ledcAttachPin(L2PWM, lmb);
+
+  // Bluetooth Name
+  serialBT.begin("ERC_PLN_ROBO");
+
+  // Output pin declare
+  pinMode(RPWM1, OUTPUT);
+  pinMode(LPWM1, OUTPUT);
+  pinMode(REN1, OUTPUT);
+  pinMode(LEN1, OUTPUT);
+  pinMode(RPWM2, OUTPUT);
+  pinMode(LPWM2, OUTPUT);
+  pinMode(REN2, OUTPUT);
+  pinMode(LEN2, OUTPUT);
+
+  // Setup PWM channels
+  ledcSetup(R1, 5000, 8);  // Channel 0 for Motor A, 5 kHz frequency, 8-bit resolution
+  ledcAttachPin(RPWM1, R1);
+  ledcSetup(R2, 5000, 8);  // Channel 1 for Motor B, 5 kHz frequency, 8-bit resolution
+  ledcAttachPin(RPWM2, R2);
+  ledcSetup(L1, 5000, 8);  // Channel 2 for Motor C, 5 kHz frequency, 8-bit resolution
+  ledcAttachPin(LPWM1, L1);
+  ledcSetup(L2, 5000, 8);  // Channel 3 for Motor D, 5 kHz frequency, 8-bit resolution
+  ledcAttachPin(LPWM2, L2);
 }
 
 void loop() {
   while (serialBT.available()) {
-    BT = serialBT.read();
-//utk mengatur kecepatan di aplikasi
-    if (BT == '0') Speed = 100;
-    if (BT == '1') Speed = 110;
-    if (BT == '2') Speed = 120;
-    if (BT == '3') Speed = 130;
-    if (BT == '4') Speed = 140;
-    if (BT == '5') Speed = 150;
-    if (BT == '6') Speed = 180;
-    if (BT == '7') Speed = 200;
-    if (BT == '8') Speed = 220;
-    if (BT == '9') Speed = 240;
-    if (BT == 'q') Speed = 255;
-// gerakan 
-    if (BT == 'F') go_forward();
-    else if (BT == 'B') go_backward();
-    else if (BT == 'L') go_left();
-    else if (BT == 'R') go_right();
-    else if (BT == 'S') stop();
-    else if (BT == 'I') forward_right();
-    else if (BT == 'J') backward_right();
-    else if (BT == 'G') forward_left();
-    else if (BT == 'H') backward_left();
+    btSignal = serialBT.read();
+    // Serial.println(btSignal);
+
+    // Map the speed from 0-9 and 'q' to 0-100
+    if (btSignal >= '0' && btSignal <= '9') {
+      Speed = map(btSignal - '0', 0, 9, 0, 100);
+    } else if (btSignal == 'q') {
+      Speed = 100;
+    }
+    
+    int pwmSpeed = map(Speed, 0, 100, 0, 255);
+
+    if (btSignal == 'F') { // Forward
+      digitalWrite(REN1, HIGH);
+      digitalWrite(LEN1, LOW);
+      ledcWrite(R1, pwmSpeed);
+      ledcWrite(L1, 0);
+
+      digitalWrite(REN2, HIGH);
+      digitalWrite(LEN2, LOW);
+      ledcWrite(R2, pwmSpeed);
+      ledcWrite(L2, 0);
+    }
+
+    else if (btSignal == 'B') { // Backward
+      digitalWrite(REN1, LOW);
+      digitalWrite(LEN1, HIGH);
+      ledcWrite(R1, 0);
+      ledcWrite(L1, pwmSpeed);
+
+      digitalWrite(REN2, LOW);
+      digitalWrite(LEN2, HIGH);
+      ledcWrite(R2, 0);
+      ledcWrite(L2, pwmSpeed);
+    }
+
+    else if (btSignal == 'L') { // Left
+      digitalWrite(REN1, LOW);
+      digitalWrite(LEN1, HIGH);
+      ledcWrite(R1, 0);
+      ledcWrite(L1, pwmSpeed);
+
+      digitalWrite(REN2, HIGH);
+      digitalWrite(LEN2, LOW);
+      ledcWrite(R2, pwmSpeed);
+      ledcWrite(L2, 0);
+    }
+
+    else if (btSignal == 'R') { // Right
+      digitalWrite(REN1, HIGH);
+      digitalWrite(LEN1, LOW);
+      ledcWrite(R1, pwmSpeed);
+      ledcWrite(L1, 0);
+
+      digitalWrite(REN2, LOW);
+      digitalWrite(LEN2, HIGH);
+      ledcWrite(R2, 0);
+      ledcWrite(L2, pwmSpeed);
+    }
+
+    else if (btSignal == 'S') { // Stop
+      digitalWrite(REN1, LOW);
+      digitalWrite(LEN1, LOW);
+      ledcWrite(R1, 0);
+      ledcWrite(L1, 0);
+
+      digitalWrite(REN2, LOW);
+      digitalWrite(LEN2, LOW);
+      ledcWrite(R2, 0);
+      ledcWrite(L2, 0);
+    }
+
+    else if (btSignal == 'I') { // Forward Right
+      digitalWrite(REN1, HIGH);
+      digitalWrite(LEN1, LOW);
+      ledcWrite(R1, pwmSpeed);
+      ledcWrite(L1, 0);
+
+      digitalWrite(REN2, LOW);
+      digitalWrite(LEN2, LOW);
+      ledcWrite(R2, 0);
+      ledcWrite(L2, 0);
+    }
+
+    else if (btSignal == 'J') { // Backward Right
+      digitalWrite(REN1, LOW);
+      digitalWrite(LEN1, HIGH);
+      ledcWrite(R1, 0);
+      ledcWrite(L1, pwmSpeed);
+
+      digitalWrite(REN2, LOW);
+      digitalWrite(LEN2, LOW);
+      ledcWrite(R2, 0);
+      ledcWrite(L2, 0);
+    }
+
+    else if (btSignal == 'G') { // Forward Left
+      digitalWrite(REN1, LOW);
+      digitalWrite(LEN1, LOW);
+      ledcWrite(R1, 0);
+      ledcWrite(L1, 0);
+
+      digitalWrite(REN2, HIGH);
+      digitalWrite(LEN2, LOW);
+      ledcWrite(R2, pwmSpeed);
+      ledcWrite(L2, 0);
+    }
+
+    else if (btSignal == 'H') { // Backward Left
+      digitalWrite(REN1, LOW);
+      digitalWrite(LEN1, LOW);
+      ledcWrite(R1, 0);
+      ledcWrite(L1, 0);
+
+      digitalWrite(REN2, LOW);
+      digitalWrite(LEN2, HIGH);
+      ledcWrite(R2, 0);
+      ledcWrite(L2, pwmSpeed);
+    }
   }
-}
-
-/*
-  rmf : motor kanan maju
-  rmb : motor kanan mundur
-  lmf : motor kiri maju
-  lmb : motor kiri mundur
-
-  arah PWM motor diatur pake "speed". jadi kalo mau ngatur arah tinggal dikasi di sebelah PWMnya
-*/
-void go_forward() { //gerakan robot maju
-  ledcWrite(rmf, Speed);  
-  ledcWrite(rmb, 0);      
-  ledcWrite(lmf, Speed);  
-  ledcWrite(lmb, 0);      
-}
-void go_backward() {
-  ledcWrite(rmf, 0);
-  ledcWrite(rmb, Speed);
-  ledcWrite(lmf, 0);
-  ledcWrite(lmb, Speed);
-}
-void go_left() {
-  ledcWrite(rmf, 0);
-  ledcWrite(rmb, Speed);
-  ledcWrite(lmf, Speed);
-  ledcWrite(lmb, 0);
-}
-void go_right() {
-  ledcWrite(rmf, Speed);
-  ledcWrite(rmb, 0);
-  ledcWrite(lmf, 0);
-  ledcWrite(lmb, Speed);
-}
-void stop() {
-  ledcWrite(rmf, 0);
-  ledcWrite(rmb, 0);
-  ledcWrite(lmf, 0);
-  ledcWrite(lmb, 0);
-}
-void forward_right() {
-  ledcWrite(rmf, Speed);
-  ledcWrite(rmb, 0);
-  ledcWrite(lmf, 0);
-  ledcWrite(lmb, 0);
-}
-void backward_right() {
-  ledcWrite(rmf, 0);
-  ledcWrite(rmb, Speed);
-  ledcWrite(lmf, 0);
-  ledcWrite(lmb, 0);
-}
-void forward_left() {
-  ledcWrite(rmf, 0);
-  ledcWrite(rmb, 0);
-  ledcWrite(lmf, Speed);
-  ledcWrite(lmb, 0);
-}
-void backward_left() {
-  ledcWrite(rmf, 0);
-  ledcWrite(rmb, 0);
-  ledcWrite(lmf, 0);
-  ledcWrite(lmb, Speed);
 }
