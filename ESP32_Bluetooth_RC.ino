@@ -1,4 +1,4 @@
-// RC BLUETOOTH RC MBUH REVISI PIO AKEH POKOK E 
+// RC BLUETOOTH RC MBUH REVISI PIRO AKEH POKOK E 
 // by Musyaffaab 
 // Elektronika dan Instrumentasi 2022
 
